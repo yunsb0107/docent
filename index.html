@@ -61,7 +61,7 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
 .list h2{font-size:13.5px;color:var(--muted);font-weight:500;margin:16px 0 6px}
 .msg{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:16px;font-size:14.5px;color:var(--muted)}
 .mapwrap{position:relative;margin:0 0 12px}
-#map{height:260px;border-radius:16px;border:1px solid var(--line);overflow:hidden;background:var(--card);z-index:0}
+#map{height:300px;border-radius:16px;border:1px solid var(--line);overflow:hidden;background:var(--card);z-index:0}
 .mapbtn{position:absolute;right:10px;bottom:10px;z-index:500;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 10px;font-size:13px;min-height:36px;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .mapbtn[aria-pressed="true"]{color:var(--accent);font-weight:700}
 .me-ic{position:relative;width:80px;height:80px}
@@ -70,6 +70,14 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
 .pin{width:26px;height:26px;border-radius:50%;background:var(--card);border:2px solid var(--brass);color:var(--fg);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 .pin.on{background:var(--accent);border-color:#fff;color:#fff;width:32px;height:32px;font-size:14px}
 .leaflet-container{font-family:inherit}
+.locbadge{position:absolute;left:10px;right:10px;top:10px;z-index:500;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.locbadge .l1{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700}
+.locbadge .l2{font-size:13px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{width:12px;height:12px;border-radius:50%;flex:none;background:var(--muted)}
+.dot.g{background:#2e9e5b}.dot.y{background:#e0a400}.dot.r{background:#d64532}
+.dot.live{animation:pulse 1.6s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,158,91,.6)}100%{box-shadow:0 0 0 10px rgba(46,158,91,0)}}
+@media (prefers-reduced-motion: reduce){.dot.live{animation:none}}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion: reduce){#ringRot,#needle{transition:none}}
 </style>
@@ -109,11 +117,11 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
 
   <section id="main" hidden>
     <div class="checks">
-      <div><b>위치</b><span class="s" id="c-geo">대기 중</span></div>
+      <div hidden><b>위치</b><span class="s" id="c-geo">대기 중</span></div>
       <div><b>방향</b><span class="s" id="c-dir">대기 중</span></div>
       <div><b>설명</b><span class="s" id="c-ai">대기 중</span></div>
     </div>
-    <div class="mapwrap"><div id="map" role="region" aria-label="지도"></div><button class="mapbtn" id="followBtn" type="button" aria-pressed="true">내 위치 따라가기</button></div>
+    <div class="mapwrap"><div class="locbadge" id="locBadge" aria-live="polite"><div class="l1"><span class="dot" id="locDot"></span><span id="locText">위치 찾는 중</span></div><div class="l2" id="locAddr">주소 확인 전</div></div><div id="map" role="region" aria-label="지도"></div><button class="mapbtn" id="followBtn" type="button" aria-pressed="true">내 위치 따라가기</button></div>
     <div class="timer" aria-hidden="true"><i id="bar"></i></div>
     <div id="content"></div>
     <div class="controls">
@@ -214,7 +222,7 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
       var where=query?'"'+query+'"':'위도 '+origin.lat.toFixed(5)+', 경도 '+origin.lng.toFixed(5)+' 지점';
       var res=await askClaude(buildPrompt(where));
       var c=res.center, center=c&&isFinite(+c.lat)&&isFinite(+c.lng)?{lat:+c.lat,lng:+c.lng}:origin;
-      if(query&&!S.gpsOk&&center){S.pos=center;S.manualPos=true;mapUpdateMe(true);}
+      if(query&&!S.gpsOk&&center){S.pos=center;S.manualPos=true;S.acc=null;mapUpdateMe(true);if(M.map)M.map.setView([center.lat,center.lng],16);revGeo(true);badge();}
       var base=S.pos||center, out=[];
       (Array.isArray(res.places)?res.places:[]).forEach(function(x){
         if(!x||!x.name)return; var lat=+x.lat,lng=+x.lng; if(!isFinite(lat)||!isFinite(lng))return;
@@ -226,7 +234,7 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
       S.lastFetch=base; S.lastFetchAt=Date.now();
       if(!out.length){check('c-ai','새로 소개할 곳이 없어요. 조금 더 걸어 보세요','bad');if(!S.places.length)msg('이 근처에서 소개할 곳을 찾지 못했어요.');return;}
       check('c-ai',((c&&c.label)?c.label+' 주변 ':'')+out.length+'곳 ('+Math.round((Date.now()-t0)/1000)+'초)','ok');
-      S.places=out;S.shown={};S.current=-1;S.hist=[];advance();renderList();mapPins(true);
+      S.places=out;S.shown={};S.current=-1;S.hist=[];advance();renderList();mapPins(false);
     }catch(e){
       var t;
       if(e.status===401)t='API 키가 맞지 않아요. 설정에서 다시 넣어 주세요.';
@@ -275,18 +283,57 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
       if(got&&err.code===3)return; clearTimeout(ft);
       gpsFail(err.code===1?'위치 권한이 거부됐어요. 브라우저 설정에서 이 사이트 위치를 허용해 주세요.':err.code===2?'현재 위치를 알 수 없어요.':'위치 응답이 늦어요.');
     },{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+    setInterval(function(){ if(document.hidden)return;
+      navigator.geolocation.getCurrentPosition(function(p){S.pollErrs=0;onPos(p);},function(e){S.pollErrs=(S.pollErrs||0)+1;S.pollErrCode=e.code;},{enableHighAccuracy:true,maximumAge:0,timeout:9000}); },10000);
   }
   function gpsFail(t){if(S.gpsOk)return;check('c-geo',t,'bad');if(!S.places.length&&!S.fetching)msg(t+' 아래 칸에 지금 있는 곳을 적어도 돼요.');}
   function onPos(p){
-    var c=p.coords; S.pos={lat:c.latitude,lng:c.longitude}; S.gpsOk=true; S.manualPos=false;
+    var c=p.coords; S.pos={lat:c.latitude,lng:c.longitude}; S.gpsOk=true; S.manualPos=false; S.lastFixAt=Date.now(); if(!S.firstFixAt)S.firstFixAt=Date.now();
     check('c-geo','GPS 작동 중 (오차 약 '+Math.round(c.accuracy)+'m)','ok');
     if(typeof c.heading==='number'&&!isNaN(c.heading)&&c.speed>1.0){S.heading=c.heading;S.gpsCourseAt=Date.now();}
     S.acc=c.accuracy; mapUpdateMe(true);
-    if(!S.lastFetch)fetchPlaces(null,true);
+    if(!S.lastFetch){ if(c.accuracy<=60||Date.now()-S.firstFixAt>20000)fetchPlaces(null,true); else if(!S.places.length)msg('정확한 위치를 잡는 중이에요 (지금 오차 약 '+Math.round(c.accuracy)+'m). 하늘이 트인 곳에서 잠시 기다려 주세요.'); }
     else if(dist(S.lastFetch,S.pos)>REFETCH_METERS)fetchPlaces(null,false);
-    draw(); updateDistances();
+    draw(); updateDistances(); revGeo(); badge();
   }
 
+
+
+  // location badge
+  function badge(){
+    var dot=$('locDot'),t=$('locText');if(!dot)return;
+    var cls='',txt='위치 찾는 중',live=false;
+    if(S.manualPos){cls='';txt='입력한 장소 기준 (GPS 아님)';}
+    else if(S.lastFixAt){
+      var age=Math.round((Date.now()-S.lastFixAt)/1000), a=Math.round(S.acc||0);
+      if(age>30&&((S.pollErrs||0)>=3||S.pollErrCode===2)){cls='r';txt='GPS 신호 약함 · '+age+'초 전 위치 · 하늘이 트인 곳으로';}
+      else if(age>30){cls='y';txt='제자리 · 마지막 위치 오차 '+a+'m';}
+      else if(a<=20){cls='g';live=true;txt='위치 정확 · 오차 '+a+'m';}
+      else if(a<=60){cls='y';live=true;txt='위치 보통 · 오차 '+a+'m';}
+      else {cls='r';txt='위치 부정확 · 오차 '+a+'m · 실외로 나가 보세요';}
+      if(age<=30&&cls!=='r') txt+=age<=2?' · 방금 갱신':' · '+age+'초 전';
+    }
+    dot.className='dot'+(cls?' '+cls:'')+(live?' live':'');t.textContent=txt;
+  }
+  setInterval(badge,1000);
+  var G={at:0,pos:null,busy:false};
+  async function revGeo(force){
+    if(!S.pos||G.busy)return;
+    if(!force&&G.pos&&dist(G.pos,S.pos)<40)return;
+    if(Date.now()-G.at<8000){setTimeout(function(){revGeo(force);},8000-(Date.now()-G.at)+100);return;}
+    G.busy=true;G.at=Date.now();var at={lat:S.pos.lat,lng:S.pos.lng};
+    try{
+      var r=await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&accept-language=ko&lat='+at.lat+'&lon='+at.lng);
+      var d=await r.json(),a=d.address||{};
+      var area=a.city_district||a.borough||a.county||a.city||a.town||'';
+      var road=a.road?(a.road+(a.house_number?' '+a.house_number:'')):(a.neighbourhood||a.suburb||a.quarter||'');
+      var name=d.name&&d.name!==a.road?d.name:'';
+      var line=[area,road].filter(Boolean).join(' ')+(name?' ('+name+')':'');
+      $('locAddr').textContent=line?'지금 여기: '+line:(d.display_name||'주소를 찾지 못했어요');
+      G.pos=at;
+    }catch(e){$('locAddr').textContent='주소를 불러오지 못했어요 (위치 표시는 정상)';}
+    finally{G.busy=false;}
+  }
 
   // map
   var M={map:null,me:null,acc:null,line:null,pins:[],follow:true,ready:false};
@@ -316,7 +363,8 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
     if(cone){if(S.heading==null)cone.style.display='none';else{cone.style.display='';coneA+=n180(S.heading-coneA);cone.style.transform='rotate('+coneA+'deg)';}}
     var p=S.places[S.current];
     if(p){var pts=[ll,[p.lat,p.lng]];if(!M.line)M.line=L.polyline(pts,{color:'#0f6b73',weight:3,dashArray:'6 8',interactive:false}).addTo(M.map);else M.line.setLatLngs(pts);}
-    if(pan&&M.follow)M.map.panTo(ll,{animate:true});
+    if(!M.centered){M.centered=true;M.map.setView(ll,17);}else if(pan&&M.follow)M.map.panTo(ll,{animate:true});
+    if(M.acc){var col=!S.acc?'#888':S.acc<=20?'#2e9e5b':S.acc<=60?'#e0a400':'#d64532';M.acc.setStyle({color:col,fillColor:col});}
   }
   function mapPins(fit){
     if(!M.ready)return;
