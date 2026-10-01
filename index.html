@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>명소 도슨트</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
 :root{--bg:#eef3f2;--fg:#14282c;--muted:#5d7176;--card:#fff;--line:#d3dedc;--accent:#0f6b73;--brass:#a87a1d;--ring:#c7d6d4;--bar:#d3dedc;--ok:#2e7d4f;--bad:#b3412f;--onacc:#fff;
@@ -40,10 +42,10 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
 .s{color:var(--muted)}.s.ok{color:var(--ok)}.s.bad{color:var(--bad)}
 .timer{height:4px;background:var(--bar);border-radius:2px;overflow:hidden;margin:0 0 14px}
 .timer i{display:block;height:100%;width:100%;background:var(--accent);transform-origin:left center}
-.stage{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center;margin-bottom:12px}
-.dial svg{width:120px;height:120px;display:block}
+.stage{display:grid;grid-template-columns:72px 1fr;gap:14px;align-items:center;margin-bottom:12px}
+.dial svg{width:72px;height:72px;display:block}
 #ringRot,#needle{transform-origin:66px 66px;transition:transform .25s linear}
-.dist{font-family:"Noto Serif KR",Georgia,serif;font-size:30px;font-weight:700;line-height:1.1}
+.dist{font-family:"Noto Serif KR",Georgia,serif;font-size:26px;font-weight:700;line-height:1.1}
 .dir{font-size:14px;color:var(--muted);margin-top:2px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
 .cat{font-size:12.5px;color:var(--brass);font-weight:700}
@@ -58,6 +60,16 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
 .row[aria-current="true"] span:first-child{font-weight:700;color:var(--accent)}
 .list h2{font-size:13.5px;color:var(--muted);font-weight:500;margin:16px 0 6px}
 .msg{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:16px;font-size:14.5px;color:var(--muted)}
+.mapwrap{position:relative;margin:0 0 12px}
+#map{height:260px;border-radius:16px;border:1px solid var(--line);overflow:hidden;background:var(--card);z-index:0}
+.mapbtn{position:absolute;right:10px;bottom:10px;z-index:500;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 10px;font-size:13px;min-height:36px;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.mapbtn[aria-pressed="true"]{color:var(--accent);font-weight:700}
+.me-ic{position:relative;width:80px;height:80px}
+.me-ic svg{position:absolute;inset:0;width:80px;height:80px;transition:transform .2s linear}
+.me-dot{position:absolute;left:31px;top:31px;width:18px;height:18px;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.pin{width:26px;height:26px;border-radius:50%;background:var(--card);border:2px solid var(--brass);color:var(--fg);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.pin.on{background:var(--accent);border-color:#fff;color:#fff;width:32px;height:32px;font-size:14px}
+.leaflet-container{font-family:inherit}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion: reduce){#ringRot,#needle{transition:none}}
 </style>
@@ -101,6 +113,7 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
       <div><b>방향</b><span class="s" id="c-dir">대기 중</span></div>
       <div><b>설명</b><span class="s" id="c-ai">대기 중</span></div>
     </div>
+    <div class="mapwrap"><div id="map" role="region" aria-label="지도"></div><button class="mapbtn" id="followBtn" type="button" aria-pressed="true">내 위치 따라가기</button></div>
     <div class="timer" aria-hidden="true"><i id="bar"></i></div>
     <div id="content"></div>
     <div class="controls">
@@ -201,7 +214,7 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
       var where=query?'"'+query+'"':'위도 '+origin.lat.toFixed(5)+', 경도 '+origin.lng.toFixed(5)+' 지점';
       var res=await askClaude(buildPrompt(where));
       var c=res.center, center=c&&isFinite(+c.lat)&&isFinite(+c.lng)?{lat:+c.lat,lng:+c.lng}:origin;
-      if(query&&!S.gpsOk&&center){S.pos=center;S.manualPos=true;}
+      if(query&&!S.gpsOk&&center){S.pos=center;S.manualPos=true;mapUpdateMe(true);}
       var base=S.pos||center, out=[];
       (Array.isArray(res.places)?res.places:[]).forEach(function(x){
         if(!x||!x.name)return; var lat=+x.lat,lng=+x.lng; if(!isFinite(lat)||!isFinite(lng))return;
@@ -213,7 +226,7 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
       S.lastFetch=base; S.lastFetchAt=Date.now();
       if(!out.length){check('c-ai','새로 소개할 곳이 없어요. 조금 더 걸어 보세요','bad');if(!S.places.length)msg('이 근처에서 소개할 곳을 찾지 못했어요.');return;}
       check('c-ai',((c&&c.label)?c.label+' 주변 ':'')+out.length+'곳 ('+Math.round((Date.now()-t0)/1000)+'초)','ok');
-      S.places=out;S.shown={};S.current=-1;S.hist=[];advance();renderList();
+      S.places=out;S.shown={};S.current=-1;S.hist=[];advance();renderList();mapPins(true);
     }catch(e){
       var t;
       if(e.status===401)t='API 키가 맞지 않아요. 설정에서 다시 넣어 주세요.';
@@ -235,7 +248,8 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
     if(h==null)return;
     if(screen.orientation&&typeof screen.orientation.angle==='number')h=(h+screen.orientation.angle)%360;
     if(!S.compass){S.compass=true;check('c-dir','나침반 작동 중','ok');}
-    S.heading=S.heading==null?h:(S.heading+n180(h-S.heading)*0.25+360)%360;
+    if(S.gpsCourseAt&&Date.now()-S.gpsCourseAt<3000)return;
+    S.heading=S.heading==null?h:(S.heading+n180(h-S.heading)*0.4+360)%360;
     drawThrottled();
   }
   async function startCompass(){
@@ -266,10 +280,58 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
   function onPos(p){
     var c=p.coords; S.pos={lat:c.latitude,lng:c.longitude}; S.gpsOk=true; S.manualPos=false;
     check('c-geo','GPS 작동 중 (오차 약 '+Math.round(c.accuracy)+'m)','ok');
-    if(!S.compass&&typeof c.heading==='number'&&!isNaN(c.heading)&&c.speed>0.8)S.heading=c.heading;
+    if(typeof c.heading==='number'&&!isNaN(c.heading)&&c.speed>1.0){S.heading=c.heading;S.gpsCourseAt=Date.now();}
+    S.acc=c.accuracy; mapUpdateMe(true);
     if(!S.lastFetch)fetchPlaces(null,true);
     else if(dist(S.lastFetch,S.pos)>REFETCH_METERS)fetchPlaces(null,false);
     draw(); updateDistances();
+  }
+
+
+  // map
+  var M={map:null,me:null,acc:null,line:null,pins:[],follow:true,ready:false};
+  function mapInit(){
+    if(M.ready||typeof L==='undefined'||!$('map'))return;
+    M.ready=true;
+    M.map=L.map('map',{zoomControl:false,attributionControl:true}).setView(S.pos?[S.pos.lat,S.pos.lng]:[37.5665,126.978],16);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(M.map);
+    M.map.on('dragstart',function(){M.follow=false;syncFollow();});
+    setTimeout(function(){M.map.invalidateSize();},200);
+    mapUpdateMe(true); mapPins();
+  }
+  function syncFollow(){var b=$('followBtn');b.setAttribute('aria-pressed',String(M.follow));b.textContent=M.follow?'내 위치 따라가기':'내 위치로';}
+  $('followBtn').onclick=function(){M.follow=true;syncFollow();if(M.map&&S.pos)M.map.setView([S.pos.lat,S.pos.lng],Math.max(M.map.getZoom(),16));};
+  function meIcon(){
+    return L.divIcon({className:'',iconSize:[80,80],iconAnchor:[40,40],html:
+      '<div class="me-ic"><svg id="cone" viewBox="0 0 80 80"><path d="M40 40 L24 4 A40 40 0 0 1 56 4 Z" fill="#1a73e8" opacity=".28"/></svg><div class="me-dot"></div></div>'});
+  }
+  var coneA=0;
+  function mapUpdateMe(pan){
+    if(!M.ready||!S.pos)return;
+    var ll=[S.pos.lat,S.pos.lng];
+    if(!M.me){M.me=L.marker(ll,{icon:meIcon(),interactive:false,zIndexOffset:1000}).addTo(M.map);}
+    else M.me.setLatLng(ll);
+    if(S.acc){if(!M.acc)M.acc=L.circle(ll,{radius:S.acc,color:'#1a73e8',weight:1,fillOpacity:.08,interactive:false}).addTo(M.map);else{M.acc.setLatLng(ll);M.acc.setRadius(S.acc);}}
+    var cone=document.getElementById('cone');
+    if(cone){if(S.heading==null)cone.style.display='none';else{cone.style.display='';coneA+=n180(S.heading-coneA);cone.style.transform='rotate('+coneA+'deg)';}}
+    var p=S.places[S.current];
+    if(p){var pts=[ll,[p.lat,p.lng]];if(!M.line)M.line=L.polyline(pts,{color:'#0f6b73',weight:3,dashArray:'6 8',interactive:false}).addTo(M.map);else M.line.setLatLngs(pts);}
+    if(pan&&M.follow)M.map.panTo(ll,{animate:true});
+  }
+  function mapPins(fit){
+    if(!M.ready)return;
+    M.pins.forEach(function(m){M.map.removeLayer(m);});M.pins=[];
+    S.places.forEach(function(p,i){
+      var m=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',iconSize:[32,32],iconAnchor:[16,16],
+        html:'<div class="pin'+(i===S.current?' on':'')+'">'+(i+1)+'</div>'}),title:p.name,zIndexOffset:i===S.current?500:0}).addTo(M.map);
+      m.on('click',function(){show(i,true);});
+      M.pins.push(m);
+    });
+    if(fit&&S.places.length){
+      var b=L.latLngBounds(S.places.map(function(p){return[p.lat,p.lng];}));
+      if(S.pos)b.extend([S.pos.lat,S.pos.lng]);
+      M.map.fitBounds(b,{padding:[30,30],maxZoom:17});M.follow=false;syncFollow();
+    }
   }
 
   // rotation
@@ -289,7 +351,7 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
     if(record&&S.current>=0&&S.current!==i){S.hist.push(S.current);if(S.hist.length>30)S.hist.shift();}
     S.current=i;S.shown[i]=true;S.remaining=INTERVAL;
     var p=S.places[i];if(S.seen.indexOf(p.name)<0)S.seen.push(p.name);
-    renderCard();renderList();draw();if(S.speak)speak();
+    renderCard();renderList();draw();mapPins(false);mapUpdateMe(false);if(S.speak)speak();
   }
 
   // render
@@ -306,7 +368,7 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
       '<p class="story">'+esc(p.story)+'</p>'+(p.look?'<p class="look"><b>여기를 보세요</b> '+esc(p.look)+'</p>':'')+
       (p.fact?'<p class="fact">'+esc(p.fact)+'</p>':'')+'</article>';}
   var ringA=0,needleA=0,last=0;
-  function drawThrottled(){var n=Date.now();if(n-last>200){last=n;draw();}}
+  function drawThrottled(){var n=Date.now();if(n-last>150){last=n;draw();mapUpdateMe(false);}}
   function draw(){var ring=$('ringRot'),nd=$('needle');if(!ring)return;var p=S.places[S.current];
     ringA+=n180((S.heading==null?0:-S.heading)-ringA);ring.style.transform='rotate('+ringA+'deg)';
     if(p&&S.pos){var d=dist(S.pos,p),b=bearing(S.pos,p),r=S.heading==null?b:n180(b-S.heading);
@@ -314,7 +376,7 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
       $('dist').textContent=d<40?'바로 여기':fmt(d);
       $('dirText').textContent=S.heading==null?comp(b)+'에 있어요':rel(r)+'에 있어요';}}
   function renderList(){if(!S.places.length){$('list').innerHTML='';return;}
-    $('list').innerHTML='<h2>근처 명소</h2>'+S.places.map(function(p,i){return '<button class="row" type="button" data-i="'+i+'"'+(i===S.current?' aria-current="true"':'')+'><span>'+esc(p.name)+'</span><span>'+(S.pos?fmt(dist(S.pos,p)):'')+'</span></button>';}).join('');}
+    $('list').innerHTML='<h2>근처 명소</h2>'+S.places.map(function(p,i){return '<button class="row" type="button" data-i="'+i+'"'+(i===S.current?' aria-current="true"':'')+'><span>'+(i+1)+'. '+esc(p.name)+'</span><span>'+(S.pos?fmt(dist(S.pos,p)):'')+'</span></button>';}).join('');}
   function updateDistances(){document.querySelectorAll('#list .row').forEach(function(r){var p=S.places[+r.getAttribute('data-i')];if(p&&S.pos)r.lastChild.textContent=fmt(dist(S.pos,p));});}
   $('list').addEventListener('click',function(e){var b=e.target.closest('.row');if(b)show(+b.getAttribute('data-i'),true);});
 
@@ -331,7 +393,7 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
   $('refreshBtn').onclick=function(){if(S.pos)fetchPlaces(null,true);else $('manualInput2').focus();};
   async function keepAwake(){try{if(navigator.wakeLock)await navigator.wakeLock.request('screen');}catch(e){}}
   document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.tick)keepAwake();});
-  function enterMain(){$('intro').hidden=true;$('main').hidden=false;startTicker();keepAwake();}
+  function enterMain(){$('intro').hidden=true;$('main').hidden=false;setTimeout(mapInit,0);startTicker();keepAwake();}
   $('startBtn').onclick=function(){enterMain();msg('위치를 확인하는 중이에요.');startCompass();startGps();};
   function manual(v){v=(v||'').trim();if(!v)return;if(!$('intro').hidden){enterMain();startCompass();}
     if(!S.gpsOk)check('c-geo','입력한 장소 기준: '+v);S.places=[];renderList();fetchPlaces(v,true);}
