@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#6b2b2b">
+<title>루브르 그림 도슨트</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖼️</text></svg>">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#f5f1ea;--fg:#231a16;--muted:#6f625a;--card:#fff;--line:#e2d8cc;--accent:#7a2e2e;--gold:#a8822a;--onacc:#fff;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#171211;--fg:#efe6dd;--muted:#a8998e;--card:#221b19;--line:#3a2f2b;--accent:#e08a7a;--gold:#e0b65a;--onacc:#171211}}
+:root[data-theme="dark"]{--bg:#171211;--fg:#efe6dd;--muted:#a8998e;--card:#221b19;--line:#3a2f2b;--accent:#e08a7a;--gold:#e0b65a;--onacc:#171211}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:"Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif;line-height:1.65;-webkit-text-size-adjust:100%}
+.wrap{max-width:560px;margin:0 auto;padding:14px 16px 40px}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+h1{font-family:"Noto Serif KR",Georgia,serif;font-size:19px;margin:0}
+.hb{display:flex;gap:6px}
+button,input{font:inherit;color:inherit}button{cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 12px;font-size:14px;min-height:42px}
+.btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:700}
+.btn:focus-visible,.primary:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.primary{border:0;background:var(--accent);color:var(--onacc);border-radius:12px;padding:10px 16px;font-size:16px;font-weight:700;min-height:48px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+.panel p{margin:0 0 10px;color:var(--muted);font-size:14px}
+.field{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 12px;font-size:16px;min-height:48px}
+.room{display:grid;grid-template-columns:48px 1fr 48px auto;gap:8px;align-items:center}
+.room input{text-align:center;font-size:22px;font-weight:700;font-family:"Noto Serif KR",Georgia,serif}
+.gps{font-size:12.5px;color:var(--muted);margin-top:8px;display:flex;gap:6px;align-items:center}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--muted);flex:none}.dot.g{background:#2e9e5b}.dot.y{background:#e0a400}.dot.r{background:#d64532}
+.status{font-size:13px;color:var(--muted);min-height:20px;margin:4px 2px 8px}.status.bad{color:#c0392b}
+.roomname{font-size:13.5px;color:var(--gold);font-weight:700;margin:0 2px 6px}
+.timer{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin:0 0 12px}
+.timer i{display:block;height:100%;width:100%;background:var(--accent);transform-origin:left center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.img{width:100%;max-height:300px;object-fit:contain;background:#000;display:block}
+.cb{padding:16px 18px 18px}
+.meta{font-size:13px;color:var(--gold);font-weight:700}
+.title{font-family:"Noto Serif KR",Georgia,serif;font-size:24px;font-weight:700;line-height:1.3;margin:2px 0}
+.sub{font-size:13.5px;color:var(--muted);margin-bottom:6px}
+.where{font-size:13.5px;margin:0 0 12px;padding:8px 10px;background:var(--bg);border-radius:10px}
+.desc{font-size:16px;margin:0 0 12px}
+.desc.wait{color:var(--muted)}
+.src{font-size:12.5px;color:var(--muted)}.src a{color:var(--accent)}
+.controls{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.row{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:10px 2px;font-size:14.5px}
+.row span:last-child{color:var(--muted);font-size:12.5px;white-space:nowrap}
+.row[aria-current="true"] span:first-child{font-weight:700;color:var(--accent)}
+.list h2{font-size:13.5px;color:var(--muted);font-weight:500;margin:14px 0 4px}
+.msg{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:16px;font-size:14.5px;color:var(--muted)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>루브르 그림 도슨트</h1>
+    <div class="hb"><button class="btn" id="setBtn" type="button">설정</button><button class="btn" id="themeBtn" type="button" aria-label="화면 밝기">화면</button></div>
+  </header>
+
+  <section id="settings" class="panel" hidden>
+    <p>Claude API 키 (명소 도슨트에 넣은 키가 있으면 자동으로 써요)</p>
+    <input class="field" id="keyInput" type="password" placeholder="sk-ant-..." autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button class="primary" id="saveBtn" type="button" style="margin-top:10px;width:100%">저장</button>
+  </section>
+
+  <section class="panel">
+    <p>지금 있는 방 번호를 넣으세요. 벽이나 문 위에 적혀 있어요. 방을 옮기면 + 나 − 를 누르면 돼요.</p>
+    <form class="room" id="roomForm" onsubmit="return false">
+      <button class="btn" type="button" id="minus" aria-label="이전 방">−</button>
+      <input class="field" id="roomInput" inputmode="numeric" value="700" aria-label="방 번호">
+      <button class="btn" type="button" id="plus" aria-label="다음 방">+</button>
+      <button class="primary" type="submit">보기</button>
+    </form>
+    <div class="gps"><span class="dot" id="gDot"></span><span id="gText">위치 확인 중</span></div>
+  </section>
+
+  <div class="roomname" id="roomName"></div>
+  <div class="status" id="status" role="status" aria-live="polite"></div>
+  <div class="timer" aria-hidden="true"><i id="bar"></i></div>
+  <div id="content"><div class="msg">방 번호를 넣고 보기를 누르세요.</div></div>
+  <div class="controls">
+    <button class="btn" id="prevBtn" type="button">이전</button>
+    <button class="btn" id="pauseBtn" type="button" aria-pressed="false">정지</button>
+    <button class="btn" id="nextBtn" type="button">다음</button>
+    <button class="btn" id="speakBtn" type="button" aria-pressed="false">음성</button>
+  </div>
+  <div class="list" id="list"></div>
+</div>
+
+<script>
+(function(){
+  var INTERVAL=25;
+  var $=function(id){return document.getElementById(id);};
+  function lsGet(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
+  function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  var key=lsGet('docent_key');
+  var S={room:'',items:[],cur:-1,remaining:INTERVAL,paused:false,speak:false,desc:{},pending:{},img:{},hist:[],gen:0};
+  try{S.desc=JSON.parse(lsGet('louvre_desc')||'{}');}catch(e){S.desc={};}
+  function saveDesc(){lsSet('louvre_desc',JSON.stringify(S.desc));}
+  function status(t,bad){var e=$('status');e.textContent=t;e.className='status'+(bad?' bad':'');}
+
+  $('themeBtn').onclick=function(){var r=document.documentElement,d=r.getAttribute('data-theme')==='dark'||(!r.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);r.setAttribute('data-theme',d?'light':'dark');};
+  $('setBtn').onclick=function(){var s=$('settings');s.hidden=!s.hidden;$('keyInput').value=key;};
+  $('saveBtn').onclick=function(){key=$('keyInput').value.trim();lsSet('docent_key',key);$('settings').hidden=true;if(S.room&&!S.items.length)loadRoom(S.room);};
+  if(!key)$('settings').hidden=false;
+
+  // GPS (indoor: just confirms you are at the Louvre)
+  var LOUVRE={lat:48.8606,lng:2.3376};
+  function dist(a,b){var R=6371000,r=Math.PI/180,dA=(b.lat-a.lat)*r,dO=(b.lng-a.lng)*r;var h=Math.sin(dA/2)*Math.sin(dA/2)+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dO/2)*Math.sin(dO/2);return 2*R*Math.asin(Math.sqrt(h));}
+  if(navigator.geolocation&&window.isSecureContext){
+    navigator.geolocation.watchPosition(function(p){var c=p.coords,d=dist({lat:c.latitude,lng:c.longitude},LOUVRE),a=Math.round(c.accuracy);
+      var inL=d<350;$('gDot').className='dot '+(inL?(a<=30?'g':'y'):'r');
+      $('gText').textContent=(inL?'루브르 안에 있어요':'루브르에서 약 '+Math.round(d)+'m 떨어져 있어요')+' · GPS 오차 '+a+'m · 실내에선 방 구분이 안 돼서 방 번호로 찾아요';},
+      function(){ $('gDot').className='dot r';$('gText').textContent='위치를 못 받았어요. 방 번호만으로도 잘 작동해요';},{enableHighAccuracy:true,maximumAge:10000,timeout:20000});
+  } else $('gText').textContent='위치 없이 방 번호로 찾아요';
+
+  // Claude API
+  async function claude(body,beta){
+    var h={'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
+    if(beta)h['anthropic-beta']=beta;
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:h,body:JSON.stringify(body)});
+    if(!r.ok){var t='';try{var j=await r.json();t=(j.error&&j.error.message)||'';}catch(e){}var er=new Error(t||('HTTP '+r.status));er.status=r.status;throw er;}
+    return r.json();
+  }
+  function parseJson(d){
+    var texts=(d.content||[]).filter(function(b){return b.type==='text';}).map(function(b){return b.text;});
+    for(var i=texts.length-1;i>=0;i--){var t=texts[i].replace(/```json|```/g,''),a=t.indexOf('{'),b=t.lastIndexOf('}');if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1));}catch(e){}}}
+    throw new Error('답 형식 오류');
+  }
+  function errText(e){return e.status===401?'API 키가 맞지 않아요. 설정에서 확인해 주세요.':e.status===429?'요청이 많아요. 잠시 뒤 다시 눌러 주세요.':e.status>=500?'Claude가 바빠요. 잠시 뒤 다시 눌러 주세요.':'불러오지 못했어요 ('+e.message+')';}
+
+  async function loadRoom(room){
+    room=String(room).trim();if(!room)return;
+    if(!key){$('settings').hidden=false;status('설정에 API 키를 넣어 주세요.',true);return;}
+    S.room=room;lsSet('louvre_room',room);var gen=++S.gen,t0=Date.now();
+    S.items=[];S.cur=-1;S.hist=[];renderList();$('roomName').textContent='';
+    $('content').innerHTML='<div class="msg">'+esc(room)+'번 방의 그림을 고르는 중이에요.</div>';
+    var tm=setInterval(function(){status('그림 목록 준비 중 '+Math.round((Date.now()-t0)/1000)+'초');},1000);
+    try{
+      var d=await claude({model:'claude-sonnet-5-5',max_tokens:12000,messages:[{role:'user',content:
+        ['루브르 박물관 '+room+'번 전시실에 지금 있는 관람객을 위한 그림 목록이 필요합니다.',
+         '이 방과 바로 이어진 방에 걸린 그림 중 유명한 작품, 특히 나무위키에 단독 문서가 있고 내용이 충실한 작품 위주로 최대 10점을 고르세요. 그 방에 걸려 있다고 확신하는 것만.',
+         '유명도(fame 1~5)가 높은 순서로. 이 방(room이 '+room+')에 있는 작품을 먼저.',
+         'namu는 나무위키 문서 제목을 정확히(예: 민중을 이끄는 자유의 여신). 단독 문서가 없을 것 같으면 빈 문자열.',
+         'en_wiki는 영어 위키백과 문서 제목. where는 방 안에서 찾는 힌트(예: 들어가서 오른쪽 벽의 대형 그림), 모르면 빈 문자열.',
+         '오직 JSON: {"room_name":"전시실 이름(예: 몰리앵 전시실, 19세기 프랑스 대형 회화)","items":[{"title":"","fr":"","artist":"","year":"","room":"","namu":"","en_wiki":"","where":"","fame":5}]}'].join('\n')}]});
+      clearInterval(tm);if(gen!==S.gen)return;
+      var res=parseJson(d),items=(res.items||[]).filter(function(x){return x&&x.title;});
+      items.sort(function(a,b){return ((b.room==room)-(a.room==room))||((+b.fame||0)-(+a.fame||0));});
+      if(!items.length){status('이 방 번호로는 그림을 찾지 못했어요. 번호를 확인해 주세요.',true);$('content').innerHTML='<div class="msg">그림을 찾지 못했어요.</div>';return;}
+      S.items=items;$('roomName').textContent=room+'번 · '+(res.room_name||'');
+      status(items.length+'점 · 25초마다 다음 그림으로 넘어가요');
+      show(0,false);renderList();prefetch();
+    }catch(e){clearInterval(tm);status(errText(e),true);$('content').innerHTML='<div class="msg">'+esc(errText(e))+'</div>';}
+  }
+
+  function dkey(it){return (it.namu||it.title)+'|'+it.artist;}
+  async function describe(it){
+    var k=dkey(it);if(S.desc[k]||S.pending[k])return;S.pending[k]=1;
+    var url=it.namu?'https://namu.wiki/w/'+encodeURIComponent(it.namu):'';
+    var p=(url?'다음 나무위키 문서를 web_fetch로 읽으세요: '+url+'\n':'')+
+      '그림: '+it.title+' ('+it.fr+'), '+it.artist+', '+it.year+'. 루브르 박물관.\n'+
+      '지금 이 그림 앞에 선 관람객에게 설명하는 한국어 5문장을 쓰세요. 무엇을 그린 그림인지, 탄생 배경과 역사적 의미, 그리고 그림 속에서 직접 찾아볼 디테일을 꼭 넣으세요.\n'+
+      '사실관계가 확실한 내용만 쓰고, 과장된 평가는 빼세요. 문서 문장을 그대로 옮기지 말고 자기 말로 다시 쓰세요. 문서를 못 읽었으면 당신의 지식으로 쓰고 source를 "claude"로.\n'+
+      '오직 JSON: {"source":"namu 또는 claude","sentences":["","","","",""]}';
+    try{
+      var body={model:'claude-haiku-4-5-20251001',max_tokens:4000,messages:[{role:'user',content:p}]};
+      if(url)body.tools=[{type:'web_fetch_20250910',name:'web_fetch',max_uses:1,allowed_domains:['namu.wiki'],max_content_tokens:20000}];
+      var d=await claude(body,url?'web-fetch-2025-09-10':null);
+      var fetched=(d.content||[]).some(function(b){return b.type==='web_fetch_tool_result'&&b.content&&b.content.type==='web_fetch_result';});
+      var r=parseJson(d),s=(r.sentences||[]).filter(Boolean).slice(0,5);
+      if(!s.length)throw new Error('빈 설명');
+      S.desc[k]={s:s,src:fetched&&r.source!=='claude'?'namu':'claude',url:url};saveDesc();
+    }catch(e){S.desc[k]=null;status(errText(e),true);}
+    finally{delete S.pending[k];var c=S.items[S.cur];if(c&&dkey(c)===k){renderCard();if(S.speak)speak();}renderList();}
+  }
+  async function prefetch(){var gen=S.gen;
+    for(var i=0;i<S.items.length&&gen===S.gen;i++){var idx=(S.cur+i)%S.items.length,it=S.items[idx];if(!S.desc[dkey(it)])await describe(it);}}
+  async function image(it){
+    if(!it.en_wiki||S.img[it.en_wiki]!==undefined)return;S.img[it.en_wiki]='';
+    try{var r=await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(it.en_wiki.replace(/ /g,'_')));var j=await r.json();
+      S.img[it.en_wiki]=(j.thumbnail&&j.thumbnail.source)?j.thumbnail.source.replace(/\/\d+px-/,'/800px-'):'';
+      var c=S.items[S.cur];if(c&&c.en_wiki===it.en_wiki)renderCard();}catch(e){}
+  }
+
+  function show(i,record){
+    if(record&&S.cur>=0&&S.cur!==i){S.hist.push(S.cur);if(S.hist.length>30)S.hist.shift();}
+    S.cur=i;S.remaining=INTERVAL;var it=S.items[i];renderCard();renderList();image(it);
+    if(!S.desc[dkey(it)])describe(it);if(S.speak)speak();
+  }
+  function renderCard(){var it=S.items[S.cur];if(!it)return;var d=S.desc[dkey(it)],im=S.img[it.en_wiki];
+    var desc=d?'<p class="desc">'+d.s.map(esc).join(' ')+'</p><div class="src">'+(d.src==='namu'?'나무위키 문서를 바탕으로 Claude가 요약 · <a href="'+esc(d.url)+'" target="_blank" rel="noopener">나무위키에서 전체 보기</a> (CC BY-NC-SA)':'Claude 설명'+(d.url?' · <a href="'+esc(d.url)+'" target="_blank" rel="noopener">나무위키</a>':''))+'</div>'
+      :'<p class="desc wait">'+(d===null?'설명을 받지 못했어요. 다음을 눌렀다가 돌아오면 다시 시도해요.':'나무위키를 읽고 설명을 쓰는 중이에요...')+'</p>';
+    $('content').innerHTML='<article class="card">'+(im?'<img class="img" src="'+esc(im)+'" alt="'+esc(it.title)+'">':'')+
+      '<div class="cb"><div class="meta">'+esc(it.room?it.room+'번 방':'')+(it.fame>=5?' · 대표작':'')+'</div><h2 class="title">'+esc(it.title)+'</h2>'+
+      '<div class="sub">'+esc([it.artist,it.year].filter(Boolean).join(', '))+(it.fr?'<br>'+esc(it.fr):'')+'</div>'+
+      (it.where?'<p class="where">찾는 법 · '+esc(it.where)+'</p>':'')+desc+'</div></article>';
+    if(d===null)S.desc[dkey(it)]=undefined;}
+  function renderList(){if(!S.items.length){$('list').innerHTML='';return;}
+    $('list').innerHTML='<h2>이 방과 주변 그림</h2>'+S.items.map(function(it,i){var d=S.desc[dkey(it)];
+      return '<button class="row" type="button" data-i="'+i+'"'+(i===S.cur?' aria-current="true"':'')+'><span>'+(i+1)+'. '+esc(it.title)+'</span><span>'+esc(it.room||'')+(d?' ✓':'')+'</span></button>';}).join('');}
+  $('list').addEventListener('click',function(e){var b=e.target.closest('.row');if(b)show(+b.getAttribute('data-i'),true);});
+
+  function speak(){if(!('speechSynthesis' in window))return;var it=S.items[S.cur],d=it&&S.desc[dkey(it)];if(!d)return;
+    try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(it.title+'. '+d.s.join(' '));u.lang='ko-KR';speechSynthesis.speak(u);}catch(e){}}
+  setInterval(function(){if(!S.paused&&S.items.length){var it=S.items[S.cur];if(S.desc[dkey(it)]||S.desc[dkey(it)]===null){S.remaining-=0.25;if(S.remaining<=0)show((S.cur+1)%S.items.length,true);}}
+    $('bar').style.transform='scaleX('+Math.max(0,Math.min(1,S.remaining/INTERVAL))+')';},250);
+  $('nextBtn').onclick=function(){if(S.items.length)show((S.cur+1)%S.items.length,true);};
+  $('prevBtn').onclick=function(){if(S.hist.length)show(S.hist.pop(),false);};
+  $('pauseBtn').onclick=function(){S.paused=!S.paused;this.setAttribute('aria-pressed',String(S.paused));this.textContent=S.paused?'재생':'정지';};
+  $('speakBtn').onclick=function(){S.speak=!S.speak;this.setAttribute('aria-pressed',String(S.speak));if(S.speak)speak();else try{speechSynthesis.cancel();}catch(e){}};
+  function step(n){var v=parseInt($('roomInput').value,10);if(!isFinite(v))v=700;$('roomInput').value=v+n;}
+  $('minus').onclick=function(){step(-1);};$('plus').onclick=function(){step(1);};
+  $('roomForm').addEventListener('submit',function(){$('roomInput').blur();loadRoom($('roomInput').value);});
+  try{if(navigator.wakeLock)navigator.wakeLock.request('screen').catch(function(){});}catch(e){}
+  var saved=lsGet('louvre_room');if(saved)$('roomInput').value=saved;
+  if(key)loadRoom($('roomInput').value);
+})();
+</script>
+</body>
+</html>
